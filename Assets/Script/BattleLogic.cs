@@ -29,6 +29,7 @@ public class BattleLogic : MonoBehaviour
     void Awake()
     {
         turnCount = 0;
+        prayStack = 0;
         pause = false;
         hand = new List<int>(3);
         prayPool = new List<IPray>();
@@ -59,7 +60,9 @@ public class BattleLogic : MonoBehaviour
         print(player.name + " " + player.health);
         foreach (Character c in enemies)
             print(c.name + " " + c.health);
+        yield return new WaitForSeconds(2f);
         yield return StartCoroutine(PlayerTurn());
+        yield return new WaitForSeconds(2f);
         yield return StartCoroutine(EnemyTurn());
         yield return new WaitForSeconds(3f);
     }
@@ -112,6 +115,7 @@ public class BattleLogic : MonoBehaviour
                 }
                 print(card);
                 print(card.GetDescription());
+                prayStack++;
             }
         }
         else
@@ -122,11 +126,15 @@ public class BattleLogic : MonoBehaviour
 
     private IEnumerator CallYS()
     {
-        foreach (IPray p in prayPool)
+        for (int i = 0; i < prayStack; i++)
         {
+            IPray p = prayPool[Random.Range(0, prayPool.Count - 1)];
             p.ResolvePray(this);
-            yield return null;
+            prayPool.Remove(p);
+            yield return new WaitForSeconds(1f);
         }
+        prayPool.Clear();
+        prayStack = 0;
     }
 
     private IEnumerator EnemyTurn()
@@ -134,12 +142,14 @@ public class BattleLogic : MonoBehaviour
         foreach (Character e in enemies)
         {
             Attack(e, player);
-            yield return null;
+            yield return new WaitForSeconds(1f);
         }
     }
 
     public void Buff(Buff buff, Character to)
     {
+        if (to == null)
+            return;
         to.AddBuff(buff);
         print("Buff " + buff.name + " to " + to.name);
         StartCoroutine(DestroyTempEffect(Instantiate(tempEffectPrefab, to.transform.position + new Vector3(0f, 0f, -0.2f), new Quaternion())));
@@ -153,6 +163,8 @@ public class BattleLogic : MonoBehaviour
 
     public void Heal(int heal, Character to)
     {
+        if (to == null)
+            return;
         int before = to.health;
         to.health += heal;
         if (to.health > to.maxHealth)
@@ -214,6 +226,8 @@ public class BattleLogic : MonoBehaviour
 
     public bool Damage(int damage, Character to)
     {
+        if (to == null)
+            return false;
         int buffed_evasion = to.evasion + to.Buffs.Sum(b => b.deltaEvasion);
         int buffed_defence = to.defence + to.Buffs.Sum(b => b.deltaDefence);
         if (buffed_defence < 0)
@@ -224,7 +238,10 @@ public class BattleLogic : MonoBehaviour
             to.health -= damage - buffed_defence;
             print("Damage " + (damage - buffed_defence) + " to " + to.name + " " + before + " -> " + to.health);
             if (to.health <= 0)
+            {
+                to.health = 0;
                 Die(to);
+            }
             StartCoroutine(DestroyTempEffect(Instantiate(tempEffectPrefab, to.transform.position + new Vector3(0f, 0f, -0.2f), new Quaternion())));
             return true;
         }

@@ -8,8 +8,8 @@ public class UIManager : MonoBehaviour
 {
     public Text deckCount;
     public Button hideButton;
+    public Button yoggButton;
     public Transform shownCardRoot;
-    public GameObject checkPrefab;
 
     private static UIManager instance;
 
@@ -75,6 +75,7 @@ public class UIManager : MonoBehaviour
         instance.chosenCard = -1;
         CanvasAdapter.InfoBarRoot.gameObject.SetActive(false);
         instance.hideButton.gameObject.SetActive(true);
+        instance.yoggButton.gameObject.SetActive(true);
 
         GameObject[] cos = new GameObject[3];
         for (int i = 0; i < hand.Count; i++)
@@ -90,6 +91,7 @@ public class UIManager : MonoBehaviour
         }
         CanvasAdapter.InfoBarRoot.gameObject.SetActive(true);
         instance.hideButton.gameObject.SetActive(false);
+        instance.yoggButton.gameObject.SetActive(false);
     }
 
     public static int GetChosenCard(out bool call_YS)
@@ -102,6 +104,12 @@ public class UIManager : MonoBehaviour
     {
         shownCardRoot.gameObject.SetActive(!shownCardRoot.gameObject.activeSelf);
         CanvasAdapter.InfoBarRoot.gameObject.SetActive(!shownCardRoot.gameObject.activeSelf);
+    }
+
+    public void OnYoggButtonClick()
+    {
+        callYS = true;
+        isWaitingForCardChoice = false;
     }
 
     public static IEnumerator PlayerCardTargetChoice(int count)
