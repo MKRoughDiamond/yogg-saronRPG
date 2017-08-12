@@ -6,13 +6,20 @@ public class Confuse : ICard
 {
     public static int id = 4;
 
+    public static string cardname = "정신 공격";
+
     public static int targetCount = 1;
 
-    public static string description = "효과 : 1턴동안 1명의 적에게 '혼란'을 부여함\n기도: \"" + ConfuseAny.description + "\" x2";
+    public static string description = "1턴 동안 1명의 적에게 \"혼란\"을 부여합니다.";
 
     public override int GetID()
     {
         return id;
+    }
+
+    public override string GetName()
+    {
+        return cardname;
     }
 
     public override int GetTargetCount()
@@ -22,13 +29,15 @@ public class Confuse : ICard
 
     public override string GetDescription()
     {
-        return description;
+        return "효과: " + description + "\n"
+             + "기도: \"" + ConfuseAny.description + "\"";
     }
 
-    public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
+    public override void ResolveEffect(BattleLogic logic, Character[] targets)
     {
         Buff b;
-        b.name = "혼란";
+        b.name = cardname;
+        b.icon = BuffIcon.Confuse;
         b.cannotAttack = false;
         b.confused = true;
         b.deltaDamage = 0;
@@ -37,8 +46,11 @@ public class Confuse : ICard
         b.duration = 1;
         b.turnstamp = logic.TurnCount;
         logic.Buff(b, targets);
+    }
 
-        pray = new IPray[] { new ConfuseAny(), new ConfuseAny() };
+    public override IPray[] GetPray()
+    {
+        return new IPray[] { new ConfuseAny(), new ConfuseAny() };
     }
 
     public override GameObject GetSpritePrefab()
@@ -48,7 +60,7 @@ public class Confuse : ICard
 
     public class ConfuseAny : IPray
     {
-        public static string description = "2턴간 혼란";
+        public static string description = "2턴 동안 대상 하나에게 '혼란'을 부여합니다.";
 
         public override string GetDescription()
         {
@@ -59,6 +71,7 @@ public class Confuse : ICard
         {
             Buff b;
             b.name = "혼란";
+            b.icon = BuffIcon.Confuse;
             b.cannotAttack = false;
             b.confused = true;
             b.deltaDamage = 0;

@@ -6,13 +6,20 @@ public class EvasionUp : ICard
 {
     public static int id = 1;
 
+    public static string cardname = "수호의 바람";
+
     public static int targetCount = 0;
 
-    public static string description = "효과 : 2턴동안 회피율 20 증가\n기도: \"" + DamageAll.description + "\" x1, \"" + HealAll.description + "\" x1";
+    public static string description = "2턴 동안 회피율이 20 증가합니다.";
 
     public override int GetID()
     {
         return id;
+    }
+
+    public override string GetName()
+    {
+        return name;
     }
 
     public override int GetTargetCount()
@@ -22,13 +29,16 @@ public class EvasionUp : ICard
 
     public override string GetDescription()
     {
-        return description;
+        return "효과: " + description + "\n"
+             + "기도: \"" + DamageAll.description + "\", "
+                   + "\"" + HealAll.description + "\"";
     }
 
-    public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
+    public override void ResolveEffect(BattleLogic logic, Character[] targets)
     {
         Buff b;
-        b.name = "회피 증가";
+        b.name = cardname;
+        b.icon = BuffIcon.EvasionUp;
         b.cannotAttack = false;
         b.confused = false;
         b.deltaDamage = 0;
@@ -37,8 +47,11 @@ public class EvasionUp : ICard
         b.duration = 2;
         b.turnstamp = logic.TurnCount;
         logic.Buff(b, logic.player);
+    }
 
-        pray = new IPray[] { new DamageAll(), new HealAll() };
+    public override IPray[] GetPray()
+    {
+        return new IPray[] { new DamageAll(), new HealAll() };
     }
 
     public override GameObject GetSpritePrefab()
@@ -48,7 +61,7 @@ public class EvasionUp : ICard
 
     public class DamageAll : IPray
     {
-        public static string description = "모두에게 2의 데미지";
+        public static string description = "모두에게 2의 대미지를 줍니다.";
 
         public override string GetDescription()
         {
@@ -63,7 +76,7 @@ public class EvasionUp : ICard
 
     public class HealAll : IPray
     {
-        public static string description = "모두에게 1의 회복";
+        public static string description = "모두의 체력을 1 회복시킵니다.";
 
         public override string GetDescription()
         {

@@ -6,13 +6,20 @@ public class LesserHeal : ICard
 {
     public static int id = 3;
 
+    public static string cardname = "응급 처치";
+
     public static int targetCount = 0;
 
-    public static string description = "효과 : 체력을 2 회복\n기도: \"" + HealSelf.description + "\" x1, \"" + HealAny.description + "\" x1";
+    public static string description = "자신의 체력을 3 회복시킵니다.";
 
     public override int GetID()
     {
         return id;
+    }
+
+    public override string GetName()
+    {
+        return cardname;
     }
 
     public override int GetTargetCount()
@@ -22,19 +29,24 @@ public class LesserHeal : ICard
 
     public override string GetDescription()
     {
-        return description;
+        return "효과: " + description + "\n"
+             + "기도: \"" + HealSelf.description + "\", "
+                   + "\"" + HealAllEnemy.description + "\"";
     }
 
-    public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
+    public override void ResolveEffect(BattleLogic logic, Character[] targets)
     {
-        logic.Heal(2, logic.player);
+        logic.Heal(3, logic.player);
+    }
 
-        pray = new IPray[] { new HealSelf(), new HealAny() };
+    public override IPray[] GetPray()
+    {
+        return new IPray[] { new HealSelf(), new HealAllEnemy() };
     }
 
     public class HealSelf : IPray
     {
-        public static string description = "자신에게 3의 회복";
+        public static string description = "플레이어의 체력을 3 회복시킵니다.";
 
         public override string GetDescription()
         {
@@ -52,9 +64,9 @@ public class LesserHeal : ICard
         return CardIndexManager.CardIndex[id];
     }
 
-    public class HealAny : IPray
+    public class HealAllEnemy : IPray
     {
-        public static string description = "2의 회복";
+        public static string description = "적 모두의 체력을 1 회복시킵니다.";
 
         public override string GetDescription()
         {
@@ -63,7 +75,7 @@ public class LesserHeal : ICard
 
         public override void ResolvePray(BattleLogic logic)
         {
-            logic.Heal(2, logic.RandomAny());
+            logic.Heal(1, logic.AllEnemy());
         }
     }
 }

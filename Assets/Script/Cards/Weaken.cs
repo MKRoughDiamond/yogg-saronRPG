@@ -6,13 +6,20 @@ public class Weaken : ICard
 {
     public static int id = 2;
 
+    public static string cardname = "허약의 물약";
+
     public static int targetCount = 2;
 
-    public static string description = "효과 : 2턴동안 2명의 적에게 '약화'를 부여함(공격력 -1)\n기도: \"" + SlowSelf.description + "\" x1, \"" + DamageAny.description + "\" x1";
+    public static string description = "1턴 동안 2명의 적에게 \"약화\"를 부여합니다. (대상의 공격력이 1만큼 감소합니다.)";
 
     public override int GetID()
     {
         return id;
+    }
+
+    public override string GetName()
+    {
+        return cardname;
     }
 
     public override int GetTargetCount()
@@ -22,13 +29,16 @@ public class Weaken : ICard
 
     public override string GetDescription()
     {
-        return description;
+        return "효과: " + description + "\n"
+             + "기도: \"" + SlowSelf.description + "\", "
+                   + "\"" + DamageAny.description + "\"";
     }
 
-    public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
+    public override void ResolveEffect(BattleLogic logic, Character[] targets)
     {
         Buff b;
-        b.name = "약화";
+        b.name = cardname;
+        b.icon = BuffIcon.DamageDown;
         b.cannotAttack = false;
         b.confused = false;
         b.deltaDamage = -1;
@@ -37,13 +47,16 @@ public class Weaken : ICard
         b.duration = 2;
         b.turnstamp = logic.TurnCount;
         logic.Buff(b, targets);
+    }
 
-        pray = new IPray[] { new SlowSelf(), new DamageAny() };
+    public override IPray[] GetPray()
+    {
+        return new IPray[] { new SlowSelf(), new DamageAny() };
     }
 
     public class SlowSelf : IPray
     {
-        public static string description = "자신에게 1턴간 둔화";
+        public static string description = "플레이어에게 1턴간 '둔화'를 부여합니다.";
 
         public override string GetDescription()
         {
@@ -54,6 +67,7 @@ public class Weaken : ICard
         {
             Buff b;
             b.name = "둔화";
+            b.icon = BuffIcon.EvasionDown;
             b.cannotAttack = false;
             b.confused = false;
             b.deltaDamage = 0;
@@ -72,7 +86,7 @@ public class Weaken : ICard
 
     public class DamageAny : IPray
     {
-        public static string description = "3의 데미지";
+        public static string description = "대상 하나에게 3의 대미지를 줍니다.";
 
         public override string GetDescription()
         {
