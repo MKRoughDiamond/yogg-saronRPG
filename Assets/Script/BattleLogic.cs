@@ -20,9 +20,14 @@ public class BattleLogic : MonoBehaviour
     private List<IPray> prayPool;
     private int prayStack;
 
+    private bool pause;
+
+    private bool _kill = false;
+
     void Awake()
     {
         turnCount = 0;
+        pause = false;
         hand = new List<int>(3);
         prayPool = new List<IPray>();
     }
@@ -30,7 +35,18 @@ public class BattleLogic : MonoBehaviour
     void Start()
     {
         deck = DeckManager.GetPlayDeck();
-        StartCoroutine(PlayerTurn());
+        StartCoroutine(TurnRunner());
+    }
+
+    public IEnumerator TurnRunner()
+    {
+        while (!_kill)
+        {
+            if (!pause)
+                yield return StartCoroutine(PlayerTurn());
+            else
+                yield return null;
+        }
     }
 
     public IEnumerator PlayerTurn()
@@ -53,22 +69,24 @@ public class BattleLogic : MonoBehaviour
         {
             if (cardid != -1)
             {
-                Card card = CardIndexManager.GetCardByID(cardid);
-                int target_count = card.TargetCount();
+                ICard card = CardIndexManager.GetCardByID(cardid);
+                int target_count = card.GetTargetCount();
                 if (target_count > 0)
                 {
-                    List<Character> targets;
+                    Character[] targets;
                     UIManager.PlayerCardTargetChoice(target_count, out targets);
-                    List<IPray> pray;
+                    IPray[] pray;
                     card.ResolveEffect(this, targets, out pray);
                     prayPool.AddRange(pray);
                 }
                 else
                 {
-                    List<IPray> pray;
+                    IPray[] pray;
                     card.ResolveEffect(this, null, out pray);
                     prayPool.AddRange(pray);
                 }
+                print(card);
+                print(card.GetDescription());
             }
         }
         else
@@ -92,19 +110,62 @@ public class BattleLogic : MonoBehaviour
         }
     }
 
-    public void Buff(Character target, Buff buff)
+    public void Buff(Buff buff, Character to)
     {
-        target.AddBuff(buff);
+        to.AddBuff(buff);
     }
 
-    public void Heal(Character target, int heal)
+    public void Buff(Buff buff, Character[] to)
     {
-        target.health += heal;
+        foreach (Character c in to)
+            Buff(buff, c);
     }
 
-    public void Attack(Character from, Character to)
+    public void Heal(int heal, Character to)
+    {
+        to.health += heal;
+        if (to.health > to.maxHealth)
+            to.health = to.maxHealth;
+    }
+
+    public void Heal(int heal, Character[] to)
+    {
+        foreach (Character c in to)
+            Heal(heal, c);
+    }
+
+    public bool Attack(Character from, Character to)
     {
         int buffed_damage = from.damage;
+        bool cannot_attack = false;
+        bool confused = false;
+        if (cannot_attack)
+            return false;
+        foreach (Buff b in from.Buffs)
+        {
+            buffed_damage += b.deltaDamage;
+            if (b.cannotAttack)
+                cannot_attack = true;
+            if (b.confused)
+                confused = true;
+        }
+
+        if (!confused)
+            return Damage(buffed_damage, to);
+        else
+            return Damage(buffed_damage, RandomAny());
+    }
+
+    public bool[] Attack(Character from, Character[] to)
+    {
+        bool[] bs = new bool[to.Length];
+        for (int i = 0; i < to.Length; i++)
+            bs[i] = Attack(from, to[i]);
+        return bs;
+    }
+
+    public bool Damage(int damage, Character to)
+    {
         int buffed_evasion = to.evasion;
         int buffed_defence = to.defence;
         foreach (Buff b in to.Buffs)
@@ -112,19 +173,111 @@ public class BattleLogic : MonoBehaviour
             buffed_defence += b.deltaDefence;
             buffed_evasion += b.deltaEvasion;
         }
-        foreach (Buff b in from.Buffs)
-            buffed_damage += b.deltaDamage;
         if (Random.Range(1, 100) > buffed_evasion)
         {
-            to.health -= buffed_damage - buffed_defence;
+            to.health -= damage - buffed_defence;
             if (to.health <= 0)
                 Die(to);
+            return true;
         }
+        else
+            return false;
+    }
+
+    public bool[] Damage(int damage, Character[] to)
+    {
+        bool[] bs = new bool[to.Length];
+        for (int i = 0; i < to.Length; i++)
+            bs[i] = Damage(damage, to[i]);
+        return bs;
     }
 
     public void Die(Character c)
     {
         // TODO: DIE
+    }
+
+    public Character[] RandomAny(int count)
+    {
+        Character[] l = new Character[count];
+        List<int> il = new List<int>(count);
+        if (count >= enemies.Count + 1)
+        {
+            for (int i = 0; i < count - 1; i++)
+                l[i] = enemies[i];
+            l[count - 1] = player;
+            return l;
+        }
+        for (int i = 0; i < count; i++)
+        {
+            int j;
+            do
+            {
+                j = Random.Range(0, enemies.Count);
+            } while (il.IndexOf(j) == -1);
+            il.Add(j);
+
+            if (j == enemies.Count)
+                l[i] = player;
+            else
+                l[i] = enemies[j];
+        }
+        return l;
+    }
+
+    public Character RandomAny()
+    {
+        int i = Random.Range(0, enemies.Count);
+        if (i == enemies.Count)
+            return player;
+        else
+            return enemies[i];
+    }
+
+    public Character[] RandomEnemy(int count)
+    {
+        Character[] l = new Character[count];
+        List<int> il = new List<int>(count);
+        if (count >= enemies.Count)
+        {
+            for (int i = 0; i < count; i++)
+                l[i] = enemies[i];
+            return l;
+        }
+        for (int i = 0; i < count; i++)
+        {
+            int j;
+            do
+            {
+                j = Random.Range(0, enemies.Count - 1);
+            } while (il.IndexOf(j) == -1);
+            il.Add(j);
+
+            l[i] = enemies[j];
+        }
+        return l;
+    }
+
+    public Character RandomEnemy()
+    {
+        return enemies[Random.Range(0, enemies.Count - 1)];
+    }
+
+    public Character[] All()
+    {
+        Character[] l = new Character[enemies.Count + 1];
+        for (int i = 0; i < enemies.Count; i++)
+            l[i] = enemies[i];
+        l[enemies.Count - 1] = player;
+        return l;
+    }
+
+    public Character[] AllEnemy()
+    {
+        Character[] l = new Character[enemies.Count];
+        for (int i = 0; i < enemies.Count; i++)
+            l[i] = enemies[i];
+        return l;
     }
 }
 
@@ -136,4 +289,5 @@ public struct Buff
     public int deltaDefence;
     public int deltaDamage;
     public bool cannotAttack;
+    public bool confused;
 }

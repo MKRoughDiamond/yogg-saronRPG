@@ -24,7 +24,7 @@ public class CardIndexManager : MonoBehaviour
         instance = this;
     }
 
-    public static Card GetCardByID(int id)
+    public static ICard GetCardByID(int id)
     {
         return instance.cardIndex[id].GetComponent<CardAdapter>().Card;
     }

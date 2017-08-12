@@ -5,8 +5,8 @@ using UnityEngine;
 public class CardAdapter : MonoBehaviour
 {
     [SerializeField]
-    private Card card;
-    public Card Card
+    private ICard card;
+    public ICard Card
     {
         get
         {

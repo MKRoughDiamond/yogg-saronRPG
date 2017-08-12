@@ -31,7 +31,7 @@ public class UIManager : MonoBehaviour
             {
                 if (hit.transform.tag == "Card")
                 {
-                    chosenCard = hit.transform.GetComponent<CardAdapter>().Card.ID;
+                    chosenCard = hit.transform.GetComponent<CardAdapter>().Card.GetID();
                     isWaitingForCardChoice = false;
                 }
                 else if (hit.transform.tag == "CallYS")
@@ -70,9 +70,11 @@ public class UIManager : MonoBehaviour
         return instance.chosenCard;
     }
 
-    public static void PlayerCardTargetChoice(int count, out List<Character> targets)
+    public static void PlayerCardTargetChoice(int count, out Character[] targets)
     {
-        targets = new List<Character>();
+        // TODO: Target Choice
+        print("Choice!");
+        targets = new Character[count];
     }
 
     public static void UpdateDeckCount(int count)

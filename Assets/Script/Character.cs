@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Character : MonoBehaviour
 {
+    public int maxHealth;
     public int health;
     public int damage;
     public int defence;
