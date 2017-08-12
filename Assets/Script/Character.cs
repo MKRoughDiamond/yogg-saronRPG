@@ -5,12 +5,15 @@ using UnityEngine;
 
 public class Character : MonoBehaviour
 {
+    public int maxHealth;
+    [HideInInspector]
     public int health;
     public int damage;
     public int defence;
     public int evasion;
     public int experience;
     public int level;
+    public GameObject check;
 
     private List<Buff> buffs;
     public List<Buff> Buffs
@@ -23,6 +26,7 @@ public class Character : MonoBehaviour
 
     void Awake()
     {
+        health = maxHealth;
         buffs = new List<Buff>();
     }
 
@@ -33,6 +37,6 @@ public class Character : MonoBehaviour
 
     public void CheckBuff(int turn_count)
     {
-        buffs.RemoveAll(b => turn_count - b.turnstamp >= b.duration);
+        buffs.RemoveAll(b => turn_count - b.turnstamp > b.duration);
     }
 }
