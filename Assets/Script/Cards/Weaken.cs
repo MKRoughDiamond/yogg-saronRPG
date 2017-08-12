@@ -28,6 +28,7 @@ public class Weaken : ICard
     public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
     {
         Buff b;
+        b.name = "약화";
         b.cannotAttack = false;
         b.confused = false;
         b.deltaDamage = -1;
@@ -35,7 +36,7 @@ public class Weaken : ICard
         b.deltaEvasion = 0;
         b.duration = 2;
         b.turnstamp = logic.TurnCount;
-        logic.Buff(b, logic.RandomEnemy(2));
+        logic.Buff(b, targets);
 
         pray = new IPray[] { new SlowSelf(), new DamageAny() };
     }
@@ -52,6 +53,7 @@ public class Weaken : ICard
         public override void ResolvePray(BattleLogic logic)
         {
             Buff b;
+            b.name = "둔화";
             b.cannotAttack = false;
             b.confused = false;
             b.deltaDamage = 0;

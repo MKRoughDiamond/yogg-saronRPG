@@ -1,11 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class BattleLogic : MonoBehaviour
 {
     public Character player;
     public List<Character> enemies;
+    public GameObject tempEffectPrefab;
 
     private int turnCount;
     public int TurnCount
@@ -38,20 +40,42 @@ public class BattleLogic : MonoBehaviour
         StartCoroutine(TurnRunner());
     }
 
-    public IEnumerator TurnRunner()
+    private IEnumerator TurnRunner()
     {
         while (!_kill)
         {
             if (!pause)
-                yield return StartCoroutine(PlayerTurn());
+                yield return StartCoroutine(Turn());
             else
                 yield return null;
         }
     }
 
-    public IEnumerator PlayerTurn()
+    private IEnumerator Turn()
+    {
+        turnCount++;
+        BuffCheck();
+        print("Turn: " + turnCount);
+        print(player.name + " " + player.health);
+        foreach (Character c in enemies)
+            print(c.name + " " + c.health);
+        yield return StartCoroutine(PlayerTurn());
+        yield return StartCoroutine(EnemyTurn());
+        yield return new WaitForSeconds(3f);
+    }
+
+    private void BuffCheck()
+    {
+        player.CheckBuff(turnCount);
+        foreach (Character c in enemies)
+            c.CheckBuff(turnCount);
+    }
+
+    private IEnumerator PlayerTurn()
     {
         hand.Clear();
+        if (deck.Count == 0)
+            deck = DeckManager.GetPlayDeck();
         for (int i = 0; i < 3; i++)
         {
             int c = deck[Random.Range(0, deck.Count - 1)];
@@ -73,8 +97,9 @@ public class BattleLogic : MonoBehaviour
                 int target_count = card.GetTargetCount();
                 if (target_count > 0)
                 {
-                    Character[] targets;
-                    UIManager.PlayerCardTargetChoice(target_count, out targets);
+                    yield return StartCoroutine(UIManager.PlayerCardTargetChoice(target_count));
+
+                    Character[] targets = UIManager.GetChosenTarget(); ;
                     IPray[] pray;
                     card.ResolveEffect(this, targets, out pray);
                     prayPool.AddRange(pray);
@@ -93,15 +118,18 @@ public class BattleLogic : MonoBehaviour
         {
             yield return StartCoroutine(CallYS());
         }
-        yield return StartCoroutine(EnemyTurn());
     }
 
-    public IEnumerator CallYS()
+    private IEnumerator CallYS()
     {
-        yield return null;
+        foreach (IPray p in prayPool)
+        {
+            p.ResolvePray(this);
+            yield return null;
+        }
     }
 
-    public IEnumerator EnemyTurn()
+    private IEnumerator EnemyTurn()
     {
         foreach (Character e in enemies)
         {
@@ -113,6 +141,8 @@ public class BattleLogic : MonoBehaviour
     public void Buff(Buff buff, Character to)
     {
         to.AddBuff(buff);
+        print("Buff " + buff.name + " to " + to.name);
+        StartCoroutine(DestroyTempEffect(Instantiate(tempEffectPrefab, to.transform.position + new Vector3(0f, 0f, -0.2f), new Quaternion())));
     }
 
     public void Buff(Buff buff, Character[] to)
@@ -123,9 +153,12 @@ public class BattleLogic : MonoBehaviour
 
     public void Heal(int heal, Character to)
     {
+        int before = to.health;
         to.health += heal;
         if (to.health > to.maxHealth)
             to.health = to.maxHealth;
+        print("Heal " + heal + " to " + to.name + " " + before + " -> " + to.health);
+        StartCoroutine(DestroyTempEffect(Instantiate(tempEffectPrefab, to.transform.position + new Vector3(0f, 0f, -0.2f), new Quaternion())));
     }
 
     public void Heal(int heal, Character[] to)
@@ -139,8 +172,14 @@ public class BattleLogic : MonoBehaviour
         int buffed_damage = from.damage;
         bool cannot_attack = false;
         bool confused = false;
+
+        print(from.name + " tries to attack " + to.name);
+
         if (cannot_attack)
+        {
+            print(from.name + " cannot attack");
             return false;
+        }
         foreach (Buff b in from.Buffs)
         {
             buffed_damage += b.deltaDamage;
@@ -149,11 +188,20 @@ public class BattleLogic : MonoBehaviour
             if (b.confused)
                 confused = true;
         }
+        if (buffed_damage < 0)
+            buffed_damage = 0;
 
         if (!confused)
+        {
+            print(from.name + " is attacking " + to.name);
             return Damage(buffed_damage, to);
+        }
         else
-            return Damage(buffed_damage, RandomAny());
+        {
+            Character t = RandomAny();
+            print(from.name + " is attacking " + t.name);
+            return Damage(buffed_damage, t);
+        }
     }
 
     public bool[] Attack(Character from, Character[] to)
@@ -166,18 +214,18 @@ public class BattleLogic : MonoBehaviour
 
     public bool Damage(int damage, Character to)
     {
-        int buffed_evasion = to.evasion;
-        int buffed_defence = to.defence;
-        foreach (Buff b in to.Buffs)
-        {
-            buffed_defence += b.deltaDefence;
-            buffed_evasion += b.deltaEvasion;
-        }
+        int buffed_evasion = to.evasion + to.Buffs.Sum(b => b.deltaEvasion);
+        int buffed_defence = to.defence + to.Buffs.Sum(b => b.deltaDefence);
+        if (buffed_defence < 0)
+            buffed_defence = 0;
         if (Random.Range(1, 100) > buffed_evasion)
         {
+            int before = to.health;
             to.health -= damage - buffed_defence;
+            print("Damage " + (damage - buffed_defence) + " to " + to.name + " " + before + " -> " + to.health);
             if (to.health <= 0)
                 Die(to);
+            StartCoroutine(DestroyTempEffect(Instantiate(tempEffectPrefab, to.transform.position + new Vector3(0f, 0f, -0.2f), new Quaternion())));
             return true;
         }
         else
@@ -195,6 +243,9 @@ public class BattleLogic : MonoBehaviour
     public void Die(Character c)
     {
         // TODO: DIE
+        print(c.name + " died");
+        if (player != c)
+            enemies.Remove(c);
     }
 
     public Character[] RandomAny(int count)
@@ -203,9 +254,10 @@ public class BattleLogic : MonoBehaviour
         List<int> il = new List<int>(count);
         if (count >= enemies.Count + 1)
         {
-            for (int i = 0; i < count - 1; i++)
+            il = new List<int>(enemies.Count + 1);
+            for (int i = 0; i < enemies.Count; i++)
                 l[i] = enemies[i];
-            l[count - 1] = player;
+            l[enemies.Count] = player;
             return l;
         }
         for (int i = 0; i < count; i++)
@@ -240,7 +292,8 @@ public class BattleLogic : MonoBehaviour
         List<int> il = new List<int>(count);
         if (count >= enemies.Count)
         {
-            for (int i = 0; i < count; i++)
+            il = new List<int>(enemies.Count);
+            for (int i = 0; i < enemies.Count; i++)
                 l[i] = enemies[i];
             return l;
         }
@@ -279,10 +332,17 @@ public class BattleLogic : MonoBehaviour
             l[i] = enemies[i];
         return l;
     }
+
+    private IEnumerator DestroyTempEffect(GameObject effect)
+    {
+        yield return new WaitForSeconds(3f);
+        Destroy(effect);
+    }
 }
 
 public struct Buff
 {
+    public string name;
     public int turnstamp;
     public int duration;
     public int deltaEvasion;

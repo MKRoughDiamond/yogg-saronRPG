@@ -28,6 +28,7 @@ public class EvasionUp : ICard
     public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
     {
         Buff b;
+        b.name = "회피 증가";
         b.cannotAttack = false;
         b.confused = false;
         b.deltaDamage = 0;

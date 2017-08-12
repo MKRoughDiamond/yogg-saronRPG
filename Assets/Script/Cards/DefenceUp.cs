@@ -28,6 +28,7 @@ public class DefenceUp : ICard
     public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
     {
         Buff b;
+        b.name = "방어 증가";
         b.cannotAttack = false;
         b.confused = false;
         b.deltaDamage = 0;

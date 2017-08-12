@@ -28,6 +28,7 @@ public class Confuse : ICard
     public override void ResolveEffect(BattleLogic logic, Character[] targets, out IPray[] pray)
     {
         Buff b;
+        b.name = "혼란";
         b.cannotAttack = false;
         b.confused = true;
         b.deltaDamage = 0;
@@ -57,6 +58,7 @@ public class Confuse : ICard
         public override void ResolvePray(BattleLogic logic)
         {
             Buff b;
+            b.name = "혼란";
             b.cannotAttack = false;
             b.confused = true;
             b.deltaDamage = 0;
