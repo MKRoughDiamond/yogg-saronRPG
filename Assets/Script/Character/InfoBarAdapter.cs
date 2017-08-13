@@ -29,7 +29,8 @@ public class InfoBarAdapter : MonoBehaviour
         infoBar.Health = (float)character.health / (float)character.maxHealth;
         infoBar.Damage = character.damage + character.Buffs.Sum(b => b.deltaDamage);
         infoBar.Defence = character.defence + character.Buffs.Sum(b => b.deltaDefence);
-        infoBar.Evasion = character.evasion + character.Buffs.Sum(b => b.deltaEvasion);
+        int ev = character.evasion + character.Buffs.Sum(b => b.deltaEvasion);
+        infoBar.Evasion = ev > 0 ? ev : 0;
         Vector3 pos = character.transform.position;
         pos *= 100f;
         pos.z = 0f;

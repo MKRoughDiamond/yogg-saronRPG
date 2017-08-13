@@ -15,6 +15,8 @@ public class MainLogic : MonoBehaviour
     private GameObject currentBackground;
     private BattleLogic currentBattle;
 
+    private int roomCount;
+
     void Start()
     {
         StartCoroutine(StartGame());
@@ -45,9 +47,25 @@ public class MainLogic : MonoBehaviour
             while (!currentBattle.battleFinished)
                 yield return null;
 
-            if (player.health <= 0)
+            if (player.health > 0)
+            {
+                yield return StartCoroutine(ScreenShowAnimation(CanvasAdapter.VictoryScreen));
+                while (!Input.GetMouseButtonDown(0))
+                    yield return null;
+                CanvasAdapter.VictoryScreen.gameObject.SetActive(false);
+            }
+            else
+            {
+                CanvasAdapter.RateText.text = "#" + (roomCount - 1);
+                yield return StartCoroutine(ScreenShowAnimation(CanvasAdapter.DefeatScreen));
+                while (!Input.GetMouseButtonDown(0))
+                    yield return null;
+                CanvasAdapter.DefeatScreen.gameObject.SetActive(false);
                 break;
+            }
         }
+
+        Application.Quit();
     }
 
     private IEnumerator FirstCardLoot()
@@ -95,6 +113,8 @@ public class MainLogic : MonoBehaviour
 
     private IEnumerator MakeRoom()
     {
+        roomCount++;
+        CanvasAdapter.BattleStart.text = "방 " + roomCount;
         GameObject old_bg = currentBackground;
         currentBackground = Instantiate(backgroundPrefab);
         currentBackground.transform.position = new Vector3(19.2f, 0f, 5f);
@@ -107,6 +127,8 @@ public class MainLogic : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             enemies[i] = Instantiate(enemyPrefabs[Random.Range(0, enemyPrefabs.Count - 1)]).GetComponent<Character>();
+            enemies[i].maxHealth = 2 + roomCount;
+            enemies[i].health = enemies[i].maxHealth;
             enemies[i].transform.parent = currentBackground.transform;
             enemies[i].transform.localPosition = new Vector3(3.5f, -3f + 3f * i, -0.2f);
         }
@@ -154,5 +176,21 @@ public class MainLogic : MonoBehaviour
             card.transform.localScale = Vector3.Lerp(original_scale, target_scale, t);
             yield return new WaitForEndOfFrame();
         }
+    }
+
+    public IEnumerator ScreenShowAnimation(Image screen)
+    {
+        screen.gameObject.SetActive(true);
+        Color original = screen.color;
+        screen.color = Color.clear;
+
+        float t = 0f;
+        while (screen.color.a != 1)
+        {
+            t += 1f * Time.deltaTime;
+            screen.color = Color.Lerp(screen.color, original, t);
+            yield return new WaitForEndOfFrame();
+        }
+        t = 0f;
     }
 }

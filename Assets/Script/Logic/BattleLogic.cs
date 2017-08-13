@@ -72,16 +72,6 @@ public class BattleLogic : MonoBehaviour
         }
         CanvasAdapter.InfoBarRoot.gameObject.SetActive(false);
         CanvasAdapter.Deck.gameObject.SetActive(false);
-        Image screen;
-        if (player.health > 0)
-            screen = CanvasAdapter.VictoryScreen;
-        else
-            screen = CanvasAdapter.DefeatScreen;
-        yield return StartCoroutine(ScreenShowAnimation(screen));
-        while (!Input.GetMouseButtonDown(0))
-            yield return null;
-        screen.gameObject.SetActive(false);
-
         battleFinished = true;
     }
 
@@ -588,22 +578,6 @@ public class BattleLogic : MonoBehaviour
         c.GetComponent<InfoBarAdapter>().infoBar.gameObject.SetActive(false);
         c.gameObject.SetActive(false);
         animateStack--;
-    }
-
-    public IEnumerator ScreenShowAnimation(Image screen)
-    {
-        screen.gameObject.SetActive(true);
-        Color original = screen.color;
-        screen.color = Color.clear;
-
-        float t = 0f;
-        while (screen.color.a != 1)
-        {
-            t += 1f * Time.deltaTime;
-            screen.color = Color.Lerp(screen.color, original, t);
-            yield return new WaitForEndOfFrame();
-        }
-        t = 0f;
     }
 
     public IEnumerator TextShowAnimation(Text text)

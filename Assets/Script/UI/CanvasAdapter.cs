@@ -35,6 +35,9 @@ public class CanvasAdapter : MonoBehaviour
     [SerializeField]
     private Text selectTarget;
     public static Text SelectTarget { get { return instance.selectTarget; } }
+    [SerializeField]
+    private Text rateText;
+    public static Text RateText { get { return instance.rateText; } }
 
     public static Transform Transform
     {
