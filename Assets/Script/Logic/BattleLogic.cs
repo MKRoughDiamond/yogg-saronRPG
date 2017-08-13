@@ -52,6 +52,8 @@ public class BattleLogic : MonoBehaviour
     {
         deck = DeckManager.GetPlayDeck();
         player.health = player.maxHealth;
+        UIManager.UpdateDeckCount(15);
+        UIManager.UpdateYoggStack(0);
         CanvasAdapter.InfoBarRoot.gameObject.SetActive(true);
         CanvasAdapter.Deck.gameObject.SetActive(true);
         StartCoroutine(TurnRunner());
@@ -88,7 +90,7 @@ public class BattleLogic : MonoBehaviour
         turnCount++;
         CanvasAdapter.TurnCounter.text = turnCount + " 턴";
         yield return StartCoroutine(TextShowAnimation(CanvasAdapter.TurnCounter));
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.2f);
         yield return StartCoroutine(PlayerTurn());
         while (isAnimating)
             yield return null;
@@ -127,20 +129,66 @@ public class BattleLogic : MonoBehaviour
             c.CheckBuff(turnCount);
     }
 
+    private IEnumerator ReplenishDeck()
+    {
+        deck = DeckManager.GetPlayDeck();
+
+        for (int i = 0; i < deck.Count; i++)
+        {
+            ICard card = Instantiate(CardIndexManager.CardIndex[deck[i]]).GetComponent<CardAdapter>().Card;
+            StartCoroutine(ReplenishAnimation(card, i + 1));
+            yield return new WaitForSeconds(0.05f);
+        }
+        yield return new WaitForSeconds(0.5f);
+    }
+
+    private IEnumerator ReplenishAnimation(ICard card, int my_count)
+    {
+        Vector3 right_lower = new Vector3(8.1f, -4.4f, -0.5f);
+        Vector3 left_lower = new Vector3(-10f, -4.4f, -0.5f);
+        card.transform.position = left_lower;
+        card.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
+        float t = 0f;
+
+        while (card.transform.position != right_lower)
+        {
+            t += 8f * Time.deltaTime;
+            card.transform.position = Vector3.Lerp(left_lower, right_lower, t);
+            yield return new WaitForEndOfFrame();
+        }
+        UIManager.UpdateDeckCount(my_count);
+        Destroy(card.gameObject);
+    }
+
     private IEnumerator PlayerTurn()
     {
         hand.Clear();
         if (deck.Count == 0)
-            deck = DeckManager.GetPlayDeck();
+        {
+            yield return StartCoroutine(ReplenishDeck());
+            Buff b;
+            b.name = "시간의 강화";
+            b.icon = BuffIcon.DamageUp;
+            b.cannotAttack = false;
+            b.confused = false;
+            b.deltaDamage = 1;
+            b.deltaDefence = 0;
+            b.deltaEvasion = 5;
+            b.duration = -1;
+            b.turnstamp = -1;
+            Buff(b, RandomEnemy());
+            while (isAnimating)
+                yield return null;
+        }
         for (int i = 0; i < 3; i++)
         {
-            int c = deck[Random.Range(0, deck.Count - 1)];
+            int c = deck[Random.Range(0, deck.Count)];
             hand.Add(c);
             deck.Remove(c);
         }
         UIManager.UpdateDeckCount(deck.Count);
 
-        yield return StartCoroutine(UIManager.PlayerCardChoice(hand));
+        yield return StartCoroutine(UIManager.GetInstance().PlayerCardChoice(hand));
 
         bool call_YS;
         int cardid = UIManager.GetChosenCard(out call_YS);
@@ -176,6 +224,7 @@ public class BattleLogic : MonoBehaviour
                 prayStack++;
                 if (prayStack > 5)
                     prayStack = 5;
+                UIManager.UpdateYoggStack(prayStack);
             }
         }
         else
@@ -188,7 +237,7 @@ public class BattleLogic : MonoBehaviour
     {
         for (int i = 0; i < prayStack; i++)
         {
-            IPray p = prayPool[Random.Range(0, prayPool.Count - 1)];
+            IPray p = prayPool[Random.Range(0, prayPool.Count)];
             p.ResolvePray(this);
             prayPool.Remove(p);
             while (isAnimating)
@@ -197,6 +246,7 @@ public class BattleLogic : MonoBehaviour
         }
         prayPool.Clear();
         prayStack = 0;
+        UIManager.UpdateYoggStack(prayStack);
     }
 
     private IEnumerator EnemyTurn()
@@ -209,7 +259,7 @@ public class BattleLogic : MonoBehaviour
                 Attack(e, player);
                 while (isAnimating)
                     yield return null;
-                yield return new WaitForSeconds(0.5f);
+                yield return new WaitForSeconds(0.2f);
             }
         }
     }
@@ -281,7 +331,7 @@ public class BattleLogic : MonoBehaviour
         int buffed_evasion = to.evasion + to.Buffs.Sum(b => b.deltaEvasion);
         int buffed_defence = to.defence + to.Buffs.Sum(b => b.deltaDefence);
         int real_damage = damage - buffed_defence;
-        if (Random.Range(1, 100) > buffed_evasion)
+        if (Random.Range(1, 101) > buffed_evasion)
         {
             to.health -= (real_damage > 0) ? real_damage : 0;
             if (to.health <= 0)
@@ -326,7 +376,7 @@ public class BattleLogic : MonoBehaviour
             int j;
             do
             {
-                j = Random.Range(0, enemies.Count);
+                j = Random.Range(0, enemies.Count + 1);
             } while (il.IndexOf(j) == -1);
             il.Add(j);
 
@@ -340,7 +390,7 @@ public class BattleLogic : MonoBehaviour
 
     public Character RandomAny()
     {
-        int i = Random.Range(0, enemies.Count);
+        int i = Random.Range(0, enemies.Count + 1);
         if (i == enemies.Count)
             return player;
         else
@@ -363,7 +413,7 @@ public class BattleLogic : MonoBehaviour
             int j;
             do
             {
-                j = Random.Range(0, enemies.Count - 1);
+                j = Random.Range(0, enemies.Count);
             } while (il.IndexOf(j) == -1);
             il.Add(j);
 
@@ -374,7 +424,7 @@ public class BattleLogic : MonoBehaviour
 
     public Character RandomEnemy()
     {
-        return enemies[Random.Range(0, enemies.Count - 1)];
+        return enemies[Random.Range(0, enemies.Count)];
     }
 
     public Character[] All()

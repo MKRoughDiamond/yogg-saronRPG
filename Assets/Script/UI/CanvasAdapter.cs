@@ -32,6 +32,9 @@ public class CanvasAdapter : MonoBehaviour
     [SerializeField]
     private Text turnCounter;
     public static Text TurnCounter { get { return instance.turnCounter; } }
+    [SerializeField]
+    private Text selectTarget;
+    public static Text SelectTarget { get { return instance.selectTarget; } }
 
     public static Transform Transform
     {

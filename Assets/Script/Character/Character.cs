@@ -37,6 +37,6 @@ public class Character : MonoBehaviour
 
     public void CheckBuff(int turn_count)
     {
-        buffs.RemoveAll(b => turn_count - b.turnstamp >= b.duration - 1);
+        buffs.RemoveAll(b => turn_count - b.turnstamp >= b.duration - 1 && b.duration != -1);
     }
 }

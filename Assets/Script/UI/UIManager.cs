@@ -9,6 +9,7 @@ public class UIManager : MonoBehaviour
     public Text deckCount;
     public Button hideButton;
     public Button yoggButton;
+    public Text yoggStack;
     public Transform shownCardRoot;
 
     private static UIManager instance;
@@ -70,7 +71,12 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public static IEnumerator PlayerCardChoice(List<int> hand)
+    public static UIManager GetInstance()
+    {
+        return instance;
+    }
+
+    public IEnumerator PlayerCardChoice(List<int> hand)
     {
         instance.chosenCard = -1;
         instance.callYS = false;
@@ -79,17 +85,30 @@ public class UIManager : MonoBehaviour
         instance.yoggButton.gameObject.SetActive(true);
 
         GameObject[] cos = new GameObject[3];
+        Vector3 right_lower = new Vector3(8.1f, -4.4f, -0.5f);
         for (int i = 0; i < hand.Count; i++)
-            cos[i] = Instantiate(CardIndexManager.CardIndex[hand[i]], new Vector3(-5f + i * 5f, 0f, -1f), new Quaternion(), instance.shownCardRoot);
+        {
+            cos[i] = Instantiate(CardIndexManager.CardIndex[hand[i]]);
+            cos[i].transform.parent = instance.shownCardRoot;
+            cos[i].transform.position = right_lower;
+            cos[i].transform.localScale = new Vector3(0.6f, 0.6f, 1f);
+        }
+        StartCoroutine(CardAnimation(cos[0], new Vector3(-5f, 0f, -0.4f), new Vector3(1f, 1f, 1f)));
+        StartCoroutine(CardAnimation(cos[2], new Vector3(5f, 0f, -0.5f), new Vector3(1f, 1f, 1f)));
+        yield return StartCoroutine(CardAnimation(cos[1], new Vector3(0f, 0f, -0.4f), new Vector3(1f, 1f, 1f)));
 
         instance.isWaitingForCardChoice = true;
         while (instance.isWaitingForCardChoice)
             yield return null;
 
+        Vector3 left_lower = new Vector3(-9f, -5f, -0.5f);
+        StartCoroutine(CardAnimation(cos[0], left_lower, new Vector3(0.6f, 0.6f, 1f)));
+        StartCoroutine(CardAnimation(cos[2], left_lower, new Vector3(0.6f, 0.6f, 1f)));
+        yield return StartCoroutine(CardAnimation(cos[1], left_lower, new Vector3(0.6f, 0.6f, 1f)));
+
         for (int i = 0; i < hand.Count; i++)
-        {
             Destroy(cos[i]);
-        }
+
         CanvasAdapter.InfoBarRoot.gameObject.SetActive(true);
         instance.hideButton.gameObject.SetActive(false);
         instance.yoggButton.gameObject.SetActive(false);
@@ -118,8 +137,10 @@ public class UIManager : MonoBehaviour
         instance.chosenTarget = new Character[count];
         instance.chooseCount = 0;
         instance.isWaitingForTargetChoice = true;
+        CanvasAdapter.SelectTarget.gameObject.SetActive(true);
         while (instance.isWaitingForTargetChoice)
             yield return null;
+        CanvasAdapter.SelectTarget.gameObject.SetActive(false);
     }
 
     public static Character[] GetChosenTarget()
@@ -132,5 +153,24 @@ public class UIManager : MonoBehaviour
     public static void UpdateDeckCount(int count)
     {
         instance.deckCount.text = "" + count;
+    }
+
+    public static void UpdateYoggStack(int count)
+    {
+        instance.yoggStack.text = "" + count + " / 5";
+    }
+
+    private IEnumerator CardAnimation(GameObject card, Vector3 target_pos, Vector3 target_scale)
+    {
+        float t = 0f;
+        Vector3 original_pos = card.transform.position;
+        Vector3 original_scale = card.transform.localScale;
+        while (card.transform.position != target_pos || card.transform.localScale != target_scale)
+        {
+            t += 8f * Time.deltaTime;
+            card.transform.position = Vector3.Lerp(original_pos, target_pos, t);
+            card.transform.localScale = Vector3.Lerp(original_scale, target_scale, t);
+            yield return new WaitForEndOfFrame();
+        }
     }
 }
