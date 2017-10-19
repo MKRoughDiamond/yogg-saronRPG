@@ -422,7 +422,7 @@ public class BattleLogic : MonoBehaviour
         Character[] l = new Character[enemies.Count + 1];
         for (int i = 0; i < enemies.Count; i++)
             l[i] = enemies[i];
-        l[enemies.Count - 1] = player;
+        l[enemies.Count] = player;
         return l;
     }
 
